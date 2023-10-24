@@ -1,0 +1,184 @@
+---
+title: "EP04-respuesta-equipo-5"
+author: "Branco García Santana"
+date: "2023-09-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(RVAideMemoire)
+library(rcompanion)
+```
+
+# Ejercicio Práctico 4:
+
+## Integrantes: Argenis Benitez, John Fernández, Branco García
+
+## Número de equipo: 5
+
+### 1. En su desquiciada investigación para acabar con los vampiros, Van Helsing ha descubierto que sus enemigos tienen predilección por la sangre humana tipo AII+. El cazador sospecha que estos monstruos tienen preferencia por la sangre de los adultos, pero aún no está convencido. Por esta razón, mediante artimañas, ha encerrado a 14 niños y 20 adultos con este tipo de sangre en un reducto de vampiros. Tras 3 noches, 3 de los niños y 13 de los adultos fueron atacados. ¿Existe relación entre el ataque de vampiros y la edad de la víctima?
+<br>
+
+- Selección de prueba: Fisher
+
+- Justificación: Se escogió porque se necesita estudiar si existe relación entre las variables dicotómicas (ser atacado o no), y como se tiene una muestra pequeña (de 34 personas) se usó esta prueba, en vez de la chi-square, la cual daba frecuencias esperadas muy cercanas a 5.
+
+- Condiciones: 
+
+La variable a estudiar es dicotómica (ser atacado o no).
+
+Se asume la independencia entre ambas variables porque los eventos no se afectan entre ellos.
+
+- Significancia: 5%
+
+- Hipótesis:
+
+Hipótesis nula (Ho): no existe relación entre el ataque de vampiros y la edad de la víctima.
+
+Hipótesis alternativa (Ha): existe relación entre el ataque de vampiros y la edad de la víctima.
+<br>
+
+```{r 9}
+alfa <- 0.05 # significancia
+# Crear tabla de contingencia
+niños <- c(3 , 11)
+adultos <- c(13 , 7)
+tabla <- as.table(rbind(niños,adultos))
+# Colocar nombres a la tabla
+dimnames(tabla) <- list ( tipo = c(" niños ", " adultos ") , 
+                             estado = c("atacados", "no atacados") )
+print(tabla)
+
+# Hacer prueba chi - cuadrado de independencia
+prueba <- fisher.test(tabla, 1-alfa)
+
+cat("\ nResultado de la prueba :\n")
+print(prueba) # resultado
+
+```
+
+Se concluye que con un nivel de confianza del 95% se puede decir que existe una relación entre los ataques del vampiro y la edad de la victima, ya que el p-value = 0.01727 es menor al nivel de significación de 0.05.
+
+<br>
+<br>
+
+### 2. Una Universidad ha detectado que muchos de sus nuevos estudiantes ingresan con elevados niveles de ansiedad. Para ello, han decidido evaluar un nuevo programa de bienvenida que busca facilitar la adaptación a la vida universitaria. Para ello, han reclutado a un grupo de 15 voluntarios a quienes se les midió el nivel de ansiedad (alto o bajo) antes y después de participar en el programa de bienvenida:
+
+### - 4 estudiantes no presentaron ansiedad ni antes ni después.
+### - 5 estudiantes inicialmente ansiosos dejaron de estarlo.
+### - 4 estudiantes mantuvieron un elevado nivel de ansiedad.
+### - Los 2 estudiantes restantes desarrollaron síntomas de ansiedad tras participar en el programa.
+
+### ¿Qué se puede concluir acerca del nuevo programa de bienvenida?
+
+<br>
+
+- Selección de prueba: McNemar
+
+- Justificación: Se escogió porque se necesita estudiar una misma característica con respuesta dicotómica, que se midió en dos ocasiones diferentes para los mismos sujetos (muestras pareadas) y se necesita determinar si se produce o no un cambio significativo entre ambas mediciones.
+
+- Condiciones: 
+
+La variable a estudiar es dicotómica (nivel de ansiedad alto o bajo).
+
+La variable independiente que es la ansiedad, es categórica.
+
+Las muestras son pareadas, porque para los mismos estudiantes se midió el nivel de ansiedad en dos ocasiones diferentes: antes y después de participar en el programa de bienvenida.
+
+- Significancia: 5%
+
+- Hipótesis: 
+
+Hipótesis nula (Ho): no hay cambios significativos en el grado de estrés de los estudiantes luego del programa de bienvenida.
+
+Hipótesis alternativa (Ha): hay cambios significativos en el grado de estrés de los estudiantes luego del programa de bienvenida.
+<br>
+
+```{r 8}
+# Construir la tabla de contingencia.
+alumno <- seq (1:15)
+# Niveles de ansiedad antes del programa de bienvenida
+antes <- c(rep("Baja",6) , rep("Alta", 9))
+# Niveles de ansiedad después del programa de bienvenida
+despues <- c(rep("Baja", 4), rep("Alta", 2), rep("Baja", 5), rep("Alta", 4))
+# Conjunto de datos
+datos <- data.frame(alumno, antes, despues)
+print(datos)
+```
+
+
+```{r 7}
+# Tabla con los niveles de ansiedad antes y después de los mismos estudiantes
+tabla <- table(antes, despues)
+print(tabla)
+
+# Aplicar prueba de McNemar.
+prueba <- mcnemar.test(tabla)
+print(prueba) # resultado
+```
+
+Como p-value = 0.4497 es menor a la significancia = 0.05, se concluye que no hay evidencia suficiente para creer que no hay cambios significativos en el grado de estrés de los estudiantes luego del programa de bienvenida.
+
+<br><br>
+
+
+### 3. En noviembre de 2019, se realizó un estudio acerca de la aprobación al presidente Sebastián Piñera entre 440 profesores y estudiantes de una prestigiosa universidad, obteniéndose los resultados que se muestran en la tabla. ¿Son similares las opiniones de ambos segmentos de la comunidad universitaria?
+
+Estudiantes: 35 (Aprueba), 208 (Desaprueba), 17 (Ninguna)
+
+Profesores 20 (Aprueba), 151 (Desaprueba), 9 (Ninguna)
+
+<br>
+- Selección de prueba: Chi cuadrado de homogeneidad.
+
+- Justificación: Se escogió porque se quiere determinar si dos poblaciones (estudiantes y profesores) presentan las mismas proporciones en los niveles de aprobación a Piñera.
+
+- Condiciones: 
+
+Las observaciones deben ser independientes entre sí, porque los estudiantes no modifican su opción (aprobar o rechazar) ante la elección de otro estudiante, lo mismo para los profesores. 
+
+Se va a suponer que la muestra fue seleccionada de manera aleatoria.
+
+Las frecuencias esperadas en cada grupo son mayores a 5, esto se ve en el desarrollo de esta pregunta.
+
+- Significancia: 5%
+
+- Hipótesis: 
+
+Hipótesis Nula (Ho): las opiniones de ambos segmentos de la comunidad universitaria son similares.
+
+Hipótesis Alternativa (Ha): las opiniones de ambos segmentos de la comunidad universitaria son distintas.
+<br>
+
+```{r 6}
+# Crear tabla de contingencia
+estudiantes <- c(34,208,17)
+profesores <- c(20,151,9)
+
+# Tabla con los datos de aprobación y rechazo de profesores y estudiantes
+tabla <- as.table(rbind(estudiantes,profesores))
+
+# Se coloca los nombres a la tabla
+dimnames(tabla) <- list(cargo = c("estudiantes", "profesores"),
+                        estado = c("Aprueba", "Desaprueba", "Ninguna"))
+
+print(tabla)
+
+```
+
+En esta parte se verifican que existan a lo menos 5 observaciones esperadas en cada grupo, para ello se ven las frecuencias esperadas, a través de la prueba de chi-squared.
+
+```{r 5}
+prueba <- chisq.test(tabla)
+prueba$expected  # frecuencias esperadas
+```
+
+Como la frecuencia esperada en cada grupo es mayor a 5, se puede usar la prueba chi-squared
+
+```{r 4}
+prueba  # resultado
+```
+
+Como p-value = 0.6201 es mayor a la significancia = 0.05, se acepta la hipótesis nula, lo que significa que no hay suficiente evidencia estadística como para rechazar que las opiniones de ambos segmentos de la comunidad universitaria son similares.

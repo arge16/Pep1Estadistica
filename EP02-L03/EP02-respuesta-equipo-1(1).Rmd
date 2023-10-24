@@ -1,0 +1,164 @@
+---
+title: "EJ2"
+author: "Argenis Benitez, Pablo Macuada, Daniel Eguiluz"
+date: "2023-09-08"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggpubr)
+# Leer el csv EP01 Datos Casen 2017.csv y crear un data frame con las variables
+datos <- read.csv("EP02 Datos.csv", header = TRUE, sep = ";", dec = ",")
+
+```
+
+## Descripción de los datos:
+* Id: identificador único para cada atleta
+* Raza: raza del atleta (categórica: Blanca, Negra, Oriental)
+* Previo: mejor tiempo registrado por el atleta antes de ingresar al programa de entrenamiento (numérica, en segundos)
+* Posterior: mejor tiempo registrado por el atleta durante los primeros 6 meses del programa de entrenamiento (numérica, en segundos)
+
+**1)El Comité Olímpico cree que el mejor tiempo medio de los atletas de raza negra después de ingresar al programa de entrenamiento es superior a 12,4 segundos. ¿Soportan los datos esta afirmación?**
+
+```{r}
+#Se filtran los datos de los atletas de raza negra y se crea un data frame con estos datos
+datos_raza_negra <- datos[datos$Raza == "Negra",]
+datos_post_raza_n <- datos_raza_negra$Posterior
+```
+
+Evaluacion del supuesto de normalidad:
+```{r}
+g <- ggqqplot(data = datos_raza_negra,
+  x = "Posterior",
+  color = " steelblue ",
+  xlab = "Teórico ",
+  ylab = " Muestra ",
+  title = "Gráfico Q-Q muestra v/s distr . normal ")
+plot(g)
+normalidad <- shapiro.test ( datos_post_raza_n )
+print(normalidad)
+
+```
+En el gráfico realizado se observan valores atípicos, sin embargo, la mayoria de los 
+valores se encuentran dentro de la región aceptable que permite suponer una distribución 
+normal, por este motivo se considerará un nivel de significancia riguroso de 0.01.
+Como una segunda comprobación para evaluar el supuesto de normalidad se realizó el test de shapiro, el cual muestra un p-value de 0.2225 lo cual es mayor a 0.01, 
+por lo que no hay evidencia suficiente para rechazar la hipotesis nula de que los datos provienen de una distribución normal.
+
+Formular hipótesis:
+Hipótesis nula (Ho): El mejor tiempo medio de los atletas de raza negra después de ingresar al programa de entrenamiento es igual a 12,4 segundos.
+Hipótesis alternativa (Ha): El mejor tiempo medio de los atletas de raza negra después de ingresar al programa de entrenamiento es superior a 12,4 segundos.
+
+$$H_{0}: \mu = 12.4$$ 
+$$H_{a}: \mu > 12.4$$
+
+Ya comprobadas las condiciones se procede a hacer el T-test:
+
+```{r }
+valor_nulo=12.4
+alfa=0.01
+prueba <- t.test(datos_post_raza_n,alternative = "greater",mu = valor_nulo ,conf.level =1 - alfa)
+print(prueba)
+```
+
+Se obtuvo un p-value de 0.27 lo cual es mayor que el nivel de significancia de 0.01, por lo cual, no hay evidencia suficiente para rechazar la hipótesis nula . Es decir con un 99% de confianza se acepta la hipótesis de que el mejor tiempo
+medio de los atletas de raza negra después de ingresar al programa de entrenamiento es igual a 12,4 segundos
+
+**2)¿Sugieren los datos que la mejor marca de los atletas de raza blanca se reduce en promedio 3,5 segundos tras el entrenamiento?**
+
+Evaluacion del supuesto de normalidad:
+```{r}
+#Se filtran los datos de los atletas de raza blanca y se crea un data frame con estos datos
+datos_raza_blanca<- datos[datos$Raza == "Blanca",]
+datos_prev_raza_b<- datos_raza_blanca$Previo
+datos_post_raza_b<- datos_raza_blanca$Posterior
+
+normalidad_2 <- shapiro.test ( datos_prev_raza_b )
+print(normalidad_2)
+
+normalidad_3 <- shapiro.test ( datos_post_raza_b )
+print(normalidad_3)
+```
+
+El test de shapiro muestra un p-value de 0.7925 y de 0.2008 lo cual es mayor a 0.01, por lo que se acepta la hipotesis nula de que los datos provienen de una distribución normal.
+Formular hipótesis:
+H0: El  mejor tiempo promedio de los atletas de raza blanca antes del entrenamiento se reduce 3.5 segundos despues del entrenamiento
+HA: Los atletas de raza blanca disminuyo sus tiempos promedios despues del entrenamiento 3.5 segundos.
+
+H0: Ua-Ud = 3.5   (Ua: tiempo promedio antes del entrenamiento, Ud: tiempo promedio despues del entrenamiento)
+HA: Ua-Ud != 3.5
+
+```{r}
+prueba2 <- t.test( datos_post_raza_b-datos_prev_raza_b, mu = 3.5)
+print(prueba2)
+```
+
+Dado que se obtiene un p-value mucho menor que el nivel de significancia (2.2e-16) de 0.01,
+por lo cual se falla en rechazar la hipótesis nula. Es decir que los datos sugieren con un 99% de confianza 
+que la mejor marca de los atletas de raza blanca se reduce en promedio 3,5 segundos tras el entrenamiento. 
+
+**3)¿Es posible afirmar que, en promedio, los atletas de raza blanca superaban a los de raza oriental por menos de 3 segundos antes del entrenamiento?**
+
+```{r}
+datos_raza_oriental<- datos[datos$Raza == "Oriental",]
+datos_prev_raza_o<- datos_raza_oriental$Previo
+```
+Evaluacion del supuesto de normalidad:
+```{r}
+normalidad_5 <- shapiro.test ( datos_prev_raza_o )
+print(normalidad_5)
+```
+
+El test de shapiro muestra un p-value de  0.932 lo cual es mayor a 0.05, por lo que se acepta la hipotesis nula
+
+Formular hipótesis:
+H0: No hay diferencia entre los tiempos promedios antes del entrenamiento de los atletas de raza blanca y oriental.
+HA: El tiempo promedio previo al entrenamiento de los atletas de raza blanca es mayor que el tiempo promedio previo al entrenamiento de los atletas de raza oriental.
+
+```{r}
+prueba3 <- t.test(datos_prev_raza_b, datos_prev_raza_o, mu = 3, alternative = "less", var.equal = TRUE)
+print(prueba3)
+```
+Dado que se obtiene un p-value de 2.2e-16 que es menor que el nivel de significancia de 0.05, se falla al rechazar la hipotesis nula,
+es decir, los datos sugieren que con un 95% de confianza podemos aceptar la hipótesis de que no hay diferencia 
+entre los tiempos promedios antes del entrenamiento de los atletas de raza blanca y oriental.
+
+
+**4)¿Será cierto que hay más atletas de raza oriental que, en promedio, redujeron sus marcas en al menos 4,3 segundos que atletas de raza negra que lo hicieron en al menos 1,4 segundos?**
+
+
+#4. ¿Será cierto que hay menos atletas de raza blanca que, en promedio, 
+redujeron sus marcas en al menos 3,5 segundos que atletas de raza negra
+que lo hicieron en al menos 1,4 segundos?
+atletas_blancos$Diferencia <- atletas_blancos$Previo - atletas_blancos$Posterior
+atletas_b_filter <- atletas_blancos %>% filter(Diferencia >= 3.5)
+ 
+atletas_negros$Diferencia <- atletas_negros$Previo - atletas_negros$Posterior
+atletas_n_filter <- atletas_negros %>% filter(Diferencia >= 1.4)
+Dado que solo se presentan 4 datos de exito sobre la media indicada, por lo tanto,
+no se cumplen las condiciones para el correcto uso del metodo de Wald.
+#Es por esto que, dadas las condiciones anteriores, se utilizará el metodo Wilson.
+
+Ho: La cantidad de atletas blancos comparado con la cantidad de atletas negros que mejoraron,
+sus marcas respectivamente a los tiempos promedios es igual.
+Ha: La cantidad de atletas blancos que mejoraron sus marcas promedios, es menor que la cantidad
+de atletas negros que mejoraron su marcas con el parametro de tiempo definido.
+largo_blancos <- length(atletas_blancos$Id)
+largo_negros <- length(atletas_negros$Id)
+
+n_f <- c(largo_blancos, largo_negros)
+
+blancos_f <- length(atletas_b_filter$Id)
+negros_f <- length(atletas_n_filter$Id)
+
+exitos_f <- c(blancos_f, negros_f)
+alfa <- 0.05
+
+prueba_3 <- prop.test(exitos_f, n = n_f, alternative = "less", conf.level = 1 - alfa)
+print(prueba)
+
+Dado que el p-value resultante es mayor a nuestro nivel de significancia propuesto,
+no se rechaza la hipótesis nula. Por lo tanto, existen no se puede afirmar que existen
+menos atletas blancos que redujeron sus marcas de tiempo, que atletas negros que mejoraron
+sus marcas.

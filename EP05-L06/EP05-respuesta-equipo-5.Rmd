@@ -1,0 +1,137 @@
+---
+title: "EP05-respuesta-equipo-5"
+author: "Grupo 5"
+date: "2023-10-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggpubr)
+library(ez)
+```
+
+## Equipo: 5
+
+### Contexto:
+
+En este momento, los investigadores buscan determinar si existen diferencias en el tiempo que tardan los usuarios en formular una consulta para un problema de dificultad fácil en las áreas de biología, economía y computación.
+
+Un equipo de investigadores del área de interacción humano-información está estudiando si el área temática y el nivel de dificultad del problema de información influyen en el tiempo (en segundos) que toma un usuario en formular una consulta de búsqueda para resolver dicho problema. Para ello, han reclutado a un grupo de participantes voluntarios, asignados aleatoriamente a distintos grupos. Cada participante debe resolver tres problemas de información con diferentes niveles de dificultad: baja, media y alta. A su vez, cada grupo debe resolver problemas relacionados a una temática diferente. Los datos recolectados contemplan las siguientes variables:
+
+- id: identificador único de cada participante.
+- area: Área temática de los problemas que el participante debe responder. Variable categórica con los niveles Arquitectura, Biología, Computación, Economía, Física, Leyes, Literatura, Matemáticas, Música, Pedagogía, Psicología, Química.
+- dificultad: Nivel de dificultad del problema resuelto. Variable categórica con los niveles Baja, Media y Alta.
+- tiempo: Tiempo, en segundos, que toma al participante formular la consulta.
+
+<br>
+
+### Pregunta 5
+
+En este momento, los investigadores buscan determinar si existen diferencias en el tiempo que tardan los usuarios en formular una consulta para un problema de dificultad fácil en las áreas de biología, economía y computación.
+
+<br>
+
+### - Definición de hipótesis:
+
+  - Ho: no existen diferencias en el tiempo que tardan los usuarios en formular una consulta para un problema de dificultad fácil en las áreas de biología, economía y computación. 
+  
+  H0: µC = µB = µE (donde C es Computación, B es Biología y E es Econonomía)
+  
+  - Ha: existen diferencias en el tiempo que tardan los usuarios en formular una consulta para un problema de dificultad fácil en las áreas de biología, economía y computación.
+  
+  HA: (µC != µB) v (µC != µE) v (µB != µE)
+
+<br>
+
+### - Obtención de datos:
+
+```{r}
+# Lectura de datos
+datos <- read.csv2("EP05 Datos.csv", header=TRUE, sep=",")
+# Filtro por áreas de computación, biología y economía
+datos <- datos[datos$area %in% c("Computación", "Biología", "Economía"), ]
+datos <- datos[datos$dificultad == "Baja", ] # Filtro por dificultad baja
+datos$id <- as.factor(datos$id) # Paso a factor el id
+datos$area <- as.factor(datos$area) # Paso a factor las áreas
+```
+
+<br> 
+
+### - Condiciones de uso para ANOVA:
+
+1. La escala con que se mide la variable dependiente que es el tiempo, tiene las propiedades de una escala de intervalos iguales
+
+  - La primera condición se verifica, puesto que si para un usuario i el tiempo para formular una consulta de un problema de dificultad fácil es de 104[s] para un área temática, mientras que para otra es de 114[s], esa es la misma diferencia (10 segundos) que se presenta para un usuario j en que una tarda 50[s] y otra 60[s].
+  
+
+2. Las 3 muestras son obtenidas de manera aleatoria e independiente desde la(s) población(es) de origen
+
+  - Esto se dice explícitamente en el enunciado: "se han reclutado a un grupo de participantes voluntarios, asignados aleatoriamente a distintos grupos" 
+
+3. Se puede suponer razonablemente que la(s) población(es) de origen sigue(n) una distribución normal
+
+  - Para esto se realizará una prueba de normalidad, y además se realizará un gráfico Q-Q para comprobarlo visualmente
+  
+
+```{r}
+g <- ggqqplot(datos, x = "tiempo", 
+              y = "area",
+              color = "area")
+g <- g + facet_wrap(~ area)
+print(g)
+```
+
+  Como se observan algunos valores que podrían ser atípicos, es mejor proceder con cautela y usar un nivel de significación α = 0,025
+
+4. Si las muestras provienen de más de una población, estas tienen la misma varianza.
+
+  - A continuación, se realiza la prueba de Bartlett para verificar la homocedasticidad de las muestras 
+
+```{r}
+bartlett.test(tiempo ~ area, datos)
+```
+
+  - Se obtuvo un p-value = 0.1122 mayor a la significación de 0.025, por lo que se falla en rechazar la hipótesis nula de la prueba de Bartlett (la que indica que las muestras tienen igual varianza)
+
+<br>
+Ya que se cumplen las 4 condiciones, se puede realizar la prueba ANOVA de una vía para muestras independientes
+
+- Primero se realizó la prueba ezANOVA
+
+```{r}
+prueba_anova <- ezANOVA(
+  data = datos,
+  dv = tiempo,
+  between = area,
+  wid = id)
+
+print(prueba_anova)
+```
+
+- Y luego se realizó la prueba aov
+
+```{r}
+prueba <- aov(tiempo ~ area, data = datos)
+print(summary(prueba))
+```
+
+Como ambas pruebas entregan un p-value mmayor a 0.025 (0.599 > 0.025), se falla en rechazar que no existen diferencias en el tiempo que tardan los usuarios en formular una consulta para un problema de dificultad fácil en las áreas de biología, economía y computación, porque no hay suficiente evidencia estadística
+
+Además, como se falla en rechazar la hipótesis nula, no es necesario realizar un procedimiento post-hoc, porque no se muestran diferencias estadísticas
+
+<br>
+- Procedimiento Post-hoc
+
+Pero a pesar que no se debería ocupar post-hoc por lo ya mencionado, se realizará de igual manera por lo requerido en la actividad (6. Determinar si corresponde o no aplicar un análisis post-hoc, justificando adecuadamente la opción escogida. Independiente del resultado anterior, aplicar un análisis post-hoc pertinente y comentar los resultados obtenidos)
+
+```{r}
+alfa = 0.025
+post_hoc <- pairwise.t.test(datos[["tiempo"]], datos[["area"]], p.adj = "holm", 
+                              pool.sd = TRUE, paired = FALSE, conf.level = 1-alfa)
+print(post_hoc)
+```
+
+Nuevamente, se puede observar no se presentan diferencias estadísticas para rechazar la hipótesis nula
+

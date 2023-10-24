@@ -1,0 +1,314 @@
+---
+title: "T02"
+author: "FS"
+date: "2023-09-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+libraries <- c("tidyverse", "ggpubr", "ez")
+
+lapply(libraries, function(package) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+  } else {
+    library(package, character.only = TRUE)
+  }
+})
+```
+
+## Preparación de los datos
+
+La base de datos de ejemplo se llama **EP02 Datos.csv**, la cual corresponde a datos del Comité Olímpico de una gran potencia del atletismo el cual se encuentra estudiando el programa de entrenamiento de varones para la competencia de 100 metros planos, condensado en 4 variables:
+
+- ```id```: Identificador unico para cada atleta
+- ```Raza```: Raza del atleta(Categórica: Blanca, Negra, Oriental)
+- ```Previo```: mejor tiempo registrado por el atleta antes de ingresar al programa de entrenamiento (numérica, en segundos)
+- ```Posterior```: mejor tiempo registrado por el atleta durante los primeros 6 meses del programa de entrenamiento (numérica, en segundos)
+
+
+La base de datos se encuentra en formato .csv (español) por ende se procede a cargarla usando la función ``` read.csv2 ```, debido a que esta optimizada para leer un csv en formato español. 
+
+
+```{r code}
+
+data <- read.csv2("EP02 Datos.csv", header = TRUE)
+head(data)
+
+
+```
+
+Ademas corroboramos que los tipos de variables de las columnas del dataframe correspondan al tipo que se debe utilizar
+
+```{r type}
+
+variables_type <- sapply(data, class)
+print(variables_type)
+
+
+```
+
+## Analisis exploratorio de los datos
+
+Se considera conveniente realizar un analisis exploratorio de los datos, el cual se realiza haciendo uso de la función `eda` de la librería `PASWR2`, la cual se realizará, para cada una de las variables en orden de aparicion de los graficos.
+1. Blanca
+2. Negra
+3. Oriental
+
+```{r eda}
+categorical_race = levels(as.factor(data$Raza))
+categorical_race
+
+for (category in categorical_race) {
+  filtered_data = data[data$Raza == category,]
+  eda(filtered_data$Previo)
+}
+
+
+```
+
+# Preguntas a Reponder:
+
+- ### 1. El Comité Olímpico cree que el mejor tiempo medio de los atletas de raza oriental antes de ingresar al programa de entrenamiento arz inferior a 19,8 segundos. ¿Soportan los datos esta afirmación?
+
+Primeramente postulamos las hipotesis:
+
+En palabras:
+
+- H0: El tiempo promedio de los atletas de raza oriental corresponde a 19.8 Seg
+- Ha: El tiempo promedio de los atletas de raza oriental es menor a 19.8 Seg
+
+Matemáticamente:
+
+- H0:  µ = µ0, es decir µ = 19.8 Seg 
+- Ha:  µ < µ0, es decir µ < 19.8 Seg.
+
+Procedemos a filtrar los datos y estimar el tamaño de la muestra para decidir si es posible realizar un z-test:
+Ya que para poder aplicarlo se deben cumplir las siguientes condiciones:
+
+- El tamaño de la muestra debe ser mayor a 30. 
+- Las observaciones deben ser independientes.
+- La población de donde se obtuvo la muestra sigue aproximadamente una distribucion normal.
+
+
+
+```{r Pregunta 1}
+
+
+oriental_athletes <- data[data$Raza == "Oriental",]
+
+size_of_oriental_sample <- length(oriental_athletes$Id)
+
+size_of_oriental_sample
+
+```
+En base el tamaño de 27 de la muestra, no es posible realizar un z-test, por lo tanto se realizará un t-test.
+El cual requiere que se cumplan las siguientes condiciones.
+ - Las observaciones son independientes entre sí.
+ - Las observaciones provienen de una distribución cercana a la normal.
+ 
+Debido a que la muestra fue seleccionada al azar, se puede asumir que son independientes. (P.5 - Lectura 3)
+Por lo tanto se procede a realizar el analisis de normalidad.
+
+
+
+```{r Pregunta 1 shapiro}
+
+  shapiro.test(oriental_athletes$Previo)
+
+```
+Debido a que el valor de shapiro.test correspondiente a 0.932,considerablemente
+superior a nuestro nivel de significancia (α = 0.05), por lo que podemos su-
+poner con relativa confianza que la población de donde proviene la muestra sigue
+una distribución normal, pero además se hará un grafico qq-plot para verificar
+la distribución de la muestra, haciendo uso de las bandas.
+
+```{r qqplot pregunta 1, echo=FALSE}
+graphic <- ggqqplot(filtered_data, x = "Previo", color = "yellow")
+print(graphic)
+``` 
+
+
+Dado que hemos verificado las condiciones descritas anteriormente descritas para realizar un t-test, se procede a realizar el calculo del estadistico.
+Haciendo uso de un nivel de significancia de 0.05.
+
+Debido a que el p-valor corresponde a 0.1666,lo cual es menor que alfa, no es 
+posible rechazar nuestra hipotesis nula planteada.
+
+
+```{r Pregunta 1 - test de hipotesis}
+
+alpha <- 0.05
+null_value =19.8
+t.test(filtered_data$Previo, alternative = "less", mu = null_value, conf.level = 1- alpha)
+
+```
+
+
+
+### 2. ¿Sugieren los datos que la mejor marca de los atletas de raza negra se reduce en promedio más de 1,9 segundos tras el entrenamiento?
+
+Primeramente postulamos las hipotesis:
+
+En palabras:
+
+- H0: El tiempo promedio de los atletas de raza negra se reduce en promedio 1.9 Seg.
+- Ha: El tiempo promedio de los atletas de raza Negra se reduce en promedio mas de 1.9 Seg.
+
+Matemáticamente:
+
+- H0:  µ = µ0, es decir µ = 1.9 Seg. 
+- Ha:  µ > µ0, es decir µ > 1.9 Seg.
+
+
+
+
+Lo primero que se propone es verificar las condiciones requeridas para realizar un z-test, estimando el tamaño de la muestra.
+Debido a que la muestra es de tamaño 28 no es posible realizar un z-test.
+
+
+```{r Pregunta 2 analisis condiciones}
+
+black_athletes <- data[data$Raza == "Negra",]
+
+n_black_sample <- length(black_athletes$Id)
+
+n_black_sample
+
+
+#agregar HIPOTESIS NULA Y ALTERNATIVA
+
+#se determina que la cantidad de atletas de raza negra corresponen a 28.
+quantify_nigga_Atheletes <- length(nigga_athletes$Id) 
+
+
+difference <- nigga_athletes$Previo - nigga_athletes$Posterior
+difference
+
+
+# verificamos si la distribucion se acerca a la normal
+normalidad <- shapiro.test(difference)
+normalidad
+
+null_value <- 1.9
+
+alpha <- 0.05
+
+prueba_1 <- t.test(difference,
+                   alternative = "greater", # indica que la media de la poblacion es mayor que el valor nulo
+                   mu = null_value,
+                   conf.level = 1 - alpha)
+
+prueba_1
+
+
+
+
+
+
+```
+Se procede a intentar realizar un t-test, para lo cual se asume que las observaciones son independientes entre sí, ya que fueron elegidas al azar.
+Por lo tanto se realiza el analisis de normalidad, el cual nos permite aseverar a través de un test de shapiro wilk, que los datos si provienen de una población que distribuye de manera normal, lo cual nos permite realizar test parametricos, especificamente el t-test.
+
+```{r Pregunta 2 analisis condiciones}
+
+difference <- black_athletes$Previo - black_athletes$Posterior
+difference
+# verificamos si la distribucion se acerca a la normal
+normalidad <- shapiro.test(difference)
+normalidad
+
+null_value <- 1.9
+
+alpha <- 0.05
+
+prueba_1 <- t.test(difference,
+                   alternative = "greater", # indica que la media de la poblacion es mayor que el valor nulo # a modo didactico probar con less, para notar que si indica el p-valor que en ese caso la hipotesis alternativa se rechaza.
+                   mu = null_value,
+                   conf.level = 1 - alpha)
+
+prueba_1
+
+```
+En base al analisis del p-valor obtenido, el cual nos brinda los antecedentes necesarios dado que el p-valor es mayor al nivel de significancia (0.05), lo cual nos permite aceptar nuestra hipotesis nula con un 95% de confianza.
+
+### 3. ¿Es posible afirmar que, en promedio, los atletas de raza negra superan a los de raza oriental por 2 segundos después del entrenamiento?
+
+
+Postulacion de hipotesis
+
+H0: El tiempo promedio de los atletas de raza negra supera por 2 segundos el de los atletas orientales.
+Ha: El tiempo promedio de los atletas de raza negra no supera por 2 segundos el de los atletas orientales
+
+
+H0:  µA - µB = 2, es decir µdif = 2 Seg 
+Ha:  µA - µ0 != 2, es decir µdif != 2 Seg.
+
+
+Se procede a verificar si cada una de las muestras distribuye de manera cercana a la normal.
+Haciendo uso de qqplot, en conjunto de un test de shapiro-wilk
+De los cuales es posible notar que algunos de los datos de los atletas de raza negra, se aleja de las bandas del grafico cuantil cuantil, lo cual se rectificará posteriormente usando un nivel de significancia mas estricto, al momento de concluir. 
+
+```{r Pregunta 3 analisis condiciones}
+
+shapiro.test(oriental_athletes$Posterior)
+
+oriental_qq <- ggqqplot(oriental_athletes, x = "Posterior", color = "yellow")
+
+print(oriental_qq)
+
+
+
+
+
+shapiro.test(black_athletes$Posterior)
+black_qq <- ggqqplot(black_athletes, x = "Posterior", color = "black")
+print(black_qq)
+
+
+
+```
+Se procede a realizar el t-test para dos muestras independientes.
+
+```{r Pregunta 3 analisis condiciones}
+
+alpha = 0.025
+
+test <- t.test(x = oriental_athletes$Posterior,
+                 y = black_athletes$Posterior,
+                 paired = FALSE,
+                 alternative = "two.sided",
+                 mu = 2,
+                 conf.level = 1-alpha,
+                 var.equal = TRUE
+)
+
+
+test
+```
+En base al analisis del p-valor (0.6535), lo cual es mucho mayor al nivel de significancia, es posible aseverar nuestra hipotesis nula en base a la evidencia existente en el test estadistico.
+
+
+
+
+prueba
+
+
+
+
+- ### 4. Será cierto que hay menos atletas de raza oriental que, en promedio, redujeron sus marcas en al menos 5,5 segundos que atletas de raza blanca que lo hicieron en al menos 3 segundos?
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
